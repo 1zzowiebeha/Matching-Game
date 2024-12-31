@@ -1,0 +1,149 @@
+﻿@page "/"
+@using System.Timers;
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Blazor Matching Game</PageTitle>
+
+<link rel="stylesheet" href="game.css">
+
+@* <p>Welcome to the game.</p> *@
+@* <p>Nothing is perfect. Beauty is the goal all around, flaws in all.</p> *@
+@* <p> *@
+@*     Humans are a flawed system by design, thus our perception and our constructions *@
+@*     will be as well. But inner and outer beauty when combined, is the ultimate *@
+@*     of all aspirations. *@
+
+@*     C# CSS JS ASP.NET Rider/VS Python HLSL Mathematics *@
+@*     KaBoom *@
+@* </p> *@
+
+@* Body *@
+
+<h1>Hello, world!</h1>
+
+@* Turn into paragraph elements for improved semantic HTML *@
+<h2 class="text-center">Matches: @matchesFound</h2>
+<h2 class="text-center">Time: @timerDisplay</h2>
+
+<div class="container-ez">
+    @for (int animalIndex = 0; animalIndex < shuffledAnimals.Count; animalIndex++) {
+        var animal = shuffledAnimals[animalIndex];
+        int localAnimalIndex = animalIndex;
+        // I don't understand this. Yet....
+        // https://stackoverflow.com/a/54813295/12637568
+        <button class="intro-animation" @onclick="@(() => Button_Clicked(animal, localAnimalIndex))">@animal</button>
+    }
+</div>
+
+@* JS *@
+<script src="game-interactivity.js"></script>
+
+@* C# Code *@
+@code {
+    List<string> animalEmojis = [
+        "🐢", "🐢",
+        "🐸", "🐸", 
+        "🔥", "🔥",
+        "📦", "📦",
+        "🐍", "🐍",
+        "🦕", "🦕",
+        "🦖", "🦖",
+        "😇", "😇",
+    ];
+
+    List<string> shuffledAnimals = new List<string>();
+    int? matchesFound;
+    
+    Timer timer;
+    int tenthsOfSecondElapsed = 0;
+    string timerDisplay = "";
+    
+    
+    protected override void OnInitialized() {
+        base.OnInitialized();
+
+        timer = new Timer(100);
+        timer.Elapsed += Timer_Elapsed;
+        
+        SetupGame();
+    }
+
+    private void SetupGame() {
+        shuffledAnimals = animalEmojis
+            .OrderBy(item => Random.Shared.Next())
+            .ToList();
+        matchesFound = 0;
+        tenthsOfSecondElapsed = 0;
+    }
+
+    string lastAnimalClicked = string.Empty;
+    int? lastAnimalIndex;
+    
+    private void Button_Clicked(string animal, int animalIndex) {
+        // Ensure @rendermode InteractiveServer is enabled
+        //  so that the client & server can talk to one another
+
+        // User has made their first selection.
+        if (lastAnimalClicked == string.Empty) {
+            lastAnimalClicked = animal;
+            lastAnimalIndex = animalIndex;
+            
+            // Start on the first user selection
+            timer.Start();
+        }
+        // Animal passed matches with the last animal clicked. Clear selection & match the two.
+        else if ((lastAnimalClicked == animal) && (animalIndex != lastAnimalIndex)) {
+            lastAnimalClicked = string.Empty;
+            lastAnimalIndex = null;
+            
+            shuffledAnimals = shuffledAnimals
+                .Select(a => a.Replace(animal, string.Empty))
+                .ToList();
+            
+            matchesFound++;
+            if (matchesFound == (shuffledAnimals.Count / 2)) {
+                // yeah idk this code is kind of weird due to mix of JS & C# but hey it works
+
+                // Prob not good to block the thread
+                // I'd put it in a separate async task that runs synchronously but
+                //  I need more knowledge to do it so I'll settle for synchronous code for now.
+                // Thread.Sleep(); blocks blazor UI async code from running until after the thread is done sleeping
+                //  I guess since UI updates after the execution of my method
+                // Async timing that I'm not sure how to handle:
+                //  Delay of 500ms, Begin JS method, after some time has passed, run synchronous SetupGame() method
+                // //      in an asynchronous context.
+                // Task.Run(async () => {
+                //     await Task.Delay(500);
+                //     await JS.InvokeAsync<int>("setupGame");
+                // });
+                timer.Stop();
+                timerDisplay += " - Play Again?";
+                
+                JS.InvokeAsync<int>("setupGame");
+                SetupGame();
+                // // Ordered this way to prevent setting button text before the animation plays.
+                // SetupGame();
+   
+            }
+        }
+        // Animal passed not the same as last animal clicked. Clear selection.
+        else {
+            lastAnimalClicked = string.Empty;
+            lastAnimalIndex = null;
+        }
+    }
+
+    private void Timer_Elapsed(object? sender, ElapsedEventArgs e) {
+        tenthsOfSecondElapsed++;
+        timerDisplay = (tenthsOfSecondElapsed / 10F)
+            .ToString("0.0s");
+        
+        // Bug: statehaschanged only updates on mouse clicks...
+        // I guess my code only runs once the UI is updated? idk
+        //StateHasChanged();
+
+        // Run asynchronously (bad design i think) to update separate from UI update blocking code?
+        Task.Run(async () => { await InvokeAsync(StateHasChanged); });
+    }
+}
