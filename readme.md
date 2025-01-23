@@ -5,4 +5,4 @@ A project that can be found in Head First C# 5th Ed.
 I added some CSS animations and made some fun card graphics.
 It uses nested styles which are a relatively new feature in CSS.
 
-<video src="https://github.com/1zzowiebeha/Matching-Game/raw/refs/heads/main/firefox_LMWzaZDyBZ.mp4"></video>
+https://github.com/user-attachments/assets/4a768250-b87b-44e3-952a-ddc667678d44
