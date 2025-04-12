@@ -9,5 +9,5 @@ It uses nested styles which are a relatively new feature in CSS.
 
 # ❗ Note to readers
 
-BEM is something I learned quite a bit after writing this project. It decouples the document from its styles via
+BEM is something I learned quite a bit after writing this project. BEM decouples the document from its styles via
 a component architecture, which makes the code-base more maintainable.
